@@ -40,6 +40,7 @@ wait_connect_gateway <- function(gatewayAddress, gatewayPort, config, isStarting
       },
       error = function(err) {
         print("This seems like a good idea lol")
+        print(err)
       }
     )
 

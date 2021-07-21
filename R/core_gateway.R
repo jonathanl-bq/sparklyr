@@ -28,6 +28,9 @@ wait_connect_gateway <- function(gatewayAddress, gatewayPort, config, isStarting
           print("get timeout")
           timeout <- spark_config_value(config, "sparklyr.gateway.interval", 1)
           print("get gateway from socketConnection")
+          print(paste("host:", gatewayAddress))
+          print(paste("gatewayPort:", gatewayPort))
+          print(paste("timeout:", timeout))
           gateway <- socketConnection(
             host = gatewayAddress,
             port = gatewayPort,

@@ -16,6 +16,12 @@ gateway_connection <- function(master, config) {
   gatewayPort <- as.integer(portAndSesssion[[1]])
   sessionId <- if (length(portAndSesssion) > 1) as.integer(portAndSesssion[[2]]) else 0
 
+  print("Getting gateway info")
+  print(gatewayAddress)
+  print(gatewayPort)
+  print(sessionId)
+  print(config)
+
   gatewayInfo <- spark_connect_gateway(
     gatewayAddress = gatewayAddress,
     gatewayPort = gatewayPort,
@@ -39,8 +45,10 @@ gateway_connection <- function(master, config) {
 spark_gateway_connection <- function(master, config, gatewayInfo, gatewayAddress) {
   tryCatch(
     {
+      print("getting interval")
       interval <- spark_config_value(config, "sparklyr.backend.interval", 1)
 
+      print("getting backend")
       backend <- socketConnection(
         host = gatewayAddress,
         port = gatewayInfo$backendPort,
@@ -49,8 +57,10 @@ spark_gateway_connection <- function(master, config, gatewayInfo, gatewayAddress
         open = "wb",
         timeout = interval
       )
+      print("getting class backend")
       class(backend) <- c(class(backend), "shell_backend")
 
+      print("getting monitoring")
       monitoring <- socketConnection(
         host = gatewayAddress,
         port = gatewayInfo$backendPort,
@@ -59,14 +69,17 @@ spark_gateway_connection <- function(master, config, gatewayInfo, gatewayAddress
         open = "wb",
         timeout = interval
       )
+      print("getting class monitoring")
       class(monitoring) <- c(class(monitoring), "shell_backend")
     },
     error = function(err) {
+      print("extra error message here for good measure")
       close(gatewayInfo$gateway)
       stop("Failed to open connection to backend:", err$message)
     }
   )
 
+  print("create the shell connection")
   # create the shell connection
   sc <- new_spark_gateway_connection(list(
     # spark_connection
@@ -83,13 +96,17 @@ spark_gateway_connection <- function(master, config, gatewayInfo, gatewayAddress
     output_file = NULL
   ))
 
+
+  print("stop shell on R exit")
   # stop shell on R exit
   reg.finalizer(baseenv(), function(x) {
     if (connection_is_open(sc)) {
+      print("connection is open")
       stop_shell(sc)
     }
   }, onexit = TRUE)
 
+  print("returning sc")
   sc
 }
 

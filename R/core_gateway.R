@@ -7,19 +7,27 @@ sparklyr_gateway_trouble_shooting_msg <- function() {
 
 wait_connect_gateway <- function(gatewayAddress, gatewayPort, config, isStarting) {
   waitSeconds <- if (isStarting) {
+    print("waitSeconds: isStarting true")
     spark_config_value(config, "sparklyr.connect.timeout", 60)
   } else {
+    print("waitSeconds: isStarting false")
     spark_config_value(config, "sparklyr.gateway.timeout", 1)
   }
 
+  print("null the gateway variable")
   gateway <- NULL
+  print("get commandStart")
   commandStart <- Sys.time()
 
+  print("gonna loop")
   while (is.null(gateway) && Sys.time() < commandStart + waitSeconds) {
+    print("gateway null and sys time less than commandStart plus waitSeconds")
     tryCatch(
       {
         suppressWarnings({
+          print("get timeout")
           timeout <- spark_config_value(config, "sparklyr.gateway.interval", 1)
+          print("get gateway from socketConnection")
           gateway <- socketConnection(
             host = gatewayAddress,
             port = gatewayPort,
@@ -31,13 +39,17 @@ wait_connect_gateway <- function(gatewayAddress, gatewayPort, config, isStarting
         })
       },
       error = function(err) {
+        print("This seems like a good idea lol")
       }
     )
 
+    print("get startWait")
     startWait <- spark_config_value(config, "sparklyr.gateway.wait", 50 / 1000)
+    print("time to sleep")
     Sys.sleep(startWait)
   }
 
+  print("returning gateway")
   gateway
 }
 

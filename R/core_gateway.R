@@ -98,10 +98,12 @@ spark_connect_gateway <- function(
                                   config,
                                   isStarting = FALSE) {
 
+  print("try connecting to existing gateway")
   # try connecting to existing gateway
   gateway <- wait_connect_gateway(gatewayAddress, gatewayPort, config, isStarting)
 
   if (is.null(gateway)) {
+    print("gateway is null")
     if (isStarting) {
       stop(
         "Gateway in ", gatewayAddress, ":", gatewayPort, " did not respond.",
@@ -112,7 +114,8 @@ spark_connect_gateway <- function(
     NULL
   }
   else {
-    worker_log("is querying ports from backend using port ", gatewayPort)
+    print("gateway ain't null")
+    print(paste("is querying ports from backend using port", gatewayPort))
 
     gateway_ports_query_attempts <- as.integer(
       spark_config_value(config, "sparklyr.gateway.port.query.attempts", 3L)
@@ -121,9 +124,11 @@ spark_connect_gateway <- function(
       spark_config_value(config, "sparklyr.gateway.port.query.retry.interval.seconds", 4L)
     )
     while (gateway_ports_query_attempts > 0) {
+      print(paste("number of query attempts:", gateway_ports_query_attempts))
       gateway_ports_query_attempts <- gateway_ports_query_attempts - 1
       withCallingHandlers(
         {
+          print("query gateway for port")
           gatewayPortsQuery <- query_gateway_for_port(
             gateway,
             sessionId,
@@ -133,6 +138,7 @@ spark_connect_gateway <- function(
           break
         },
         error = function(e) {
+          print("we got an error")
           isStarting <- FALSE
           if (gateway_ports_query_attempts > 0) {
             Sys.sleep(gateway_ports_query_retry_interval_s)
@@ -142,29 +148,38 @@ spark_connect_gateway <- function(
       )
     }
     if (is.null(gatewayPortsQuery) && !isStarting) {
+      print("gatewayPortsQuery is null and not isStarting")
       close(gateway)
       return(NULL)
     }
 
+    print("getting redirectGatewayPort")
     redirectGatewayPort <- gatewayPortsQuery$redirectGatewayPort
+    print("getting backendPort")
     backendPort <- gatewayPortsQuery$backendPort
 
+    print(paste("found redirect gateway port", redirectGatewayPort))
     worker_log("found redirect gateway port ", redirectGatewayPort)
 
     if (redirectGatewayPort == 0) {
+      print("redirectGatewayPort is 0")
       close(gateway)
 
       if (isStarting) {
+        print("isStarting true")
         stop("Gateway in ", gatewayAddress, ":", gatewayPort, " does not have the requested session registered")
       }
 
       NULL
     } else if (redirectGatewayPort != gatewayPort) {
+      print("redirectGatewayPort not eq gatewayPort")
       close(gateway)
 
+      print("call spark_connect_gateway (estoy loopin)")
       spark_connect_gateway(gatewayAddress, redirectGatewayPort, sessionId, config, isStarting)
     }
     else {
+      print("else block")
       list(
         gateway = gateway,
         backendPort = backendPort
